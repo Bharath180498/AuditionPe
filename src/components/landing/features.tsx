@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Video, FileText } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const actorFeatures = [
     {
@@ -45,14 +46,17 @@ export function Features() {
                     <h2 className="text-3xl font-bold">What We Offer</h2>
                     <p className="text-gray-500 mt-2">The ultimate platform for actors and producers.</p>
                 </div>
-                <div className="grid md:grid-cols-2 gap-12">
-                    <div>
-                        <h3 className="text-2xl font-semibold mb-6 text-center">For Actors</h3>
-                        <div className="space-y-6">
+                <Tabs defaultValue="actors" className="w-full max-w-4xl mx-auto">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="actors">For Actors</TabsTrigger>
+                        <TabsTrigger value="producers">For Producers</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="actors">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">
                             {actorFeatures.map((feature, index) => (
-                                <Card key={index}>
-                                    <CardHeader className="flex flex-row items-center gap-4">
-                                        {feature.icon}
+                                <Card key={index} className="text-center">
+                                    <CardHeader>
+                                        <div className="flex justify-center mb-4">{feature.icon}</div>
                                         <CardTitle>{feature.title}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
@@ -61,14 +65,13 @@ export function Features() {
                                 </Card>
                             ))}
                         </div>
-                    </div>
-                    <div>
-                        <h3 className="text-2xl font-semibold mb-6 text-center">For Producers</h3>
-                        <div className="space-y-6">
+                    </TabsContent>
+                    <TabsContent value="producers">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">
                             {producerFeatures.map((feature, index) => (
-                                <Card key={index}>
-                                    <CardHeader className="flex flex-row items-center gap-4">
-                                        {feature.icon}
+                                <Card key={index} className="text-center">
+                                    <CardHeader>
+                                        <div className="flex justify-center mb-4">{feature.icon}</div>
                                         <CardTitle>{feature.title}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
@@ -77,8 +80,8 @@ export function Features() {
                                 </Card>
                             ))}
                         </div>
-                    </div>
-                </div>
+                    </TabsContent>
+                </Tabs>
             </div>
         </section>
     );
