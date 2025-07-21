@@ -1,0 +1,12 @@
+{
+  "name": "auditionpe",
+  "version": "1.0.0",
+  "description": "Project Spec – Backstage India (Frontend-First) 📌 Project Summary Build a web-based casting platform for India where:",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
