@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSessionStore } from "@/store/session";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,20 +14,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Menu, X } from "lucide-react";
-import { User } from "@/data/users";
+import { useSession, signOut } from "next-auth/react";
 
 export function Header() {
-  const { user, setUser } = useSessionStore();
+  const { data: session } = useSession();
+  const user = session?.user;
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    setUser(null);
+    signOut();
     setIsMenuOpen(false);
   };
 
-  const getInitials = (email: string) => {
-    return email ? email.charAt(0).toUpperCase() : "";
+  const getInitials = (name?: string | null) => {
+    return name ? name.charAt(0).toUpperCase() : "";
   };
 
   const actorLinks = [
@@ -40,7 +40,7 @@ export function Header() {
     { href: "/producer/dashboard", label: "My Castings" },
   ];
 
-  const links = user?.role === "Producer" ? producerLinks : actorLinks;
+  const links = user?.role === "PRODUCER" ? producerLinks : actorLinks;
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -119,8 +119,13 @@ export function Header() {
 
 type UserMenuProps = {
   onLogout: () => void;
-  user: User;
-  getInitials: (email: string) => string;
+  user: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+    role?: "ACTOR" | "PRODUCER";
+  };
+  getInitials: (name?: string | null) => string;
   isMobile?: boolean;
 };
 
@@ -130,12 +135,12 @@ const UserMenu = ({ onLogout, user, getInitials, isMobile }: UserMenuProps) => (
       {isMobile ? (
         <div className="flex items-center gap-2">
            <Avatar className="h-8 w-8">
-            <AvatarImage src="/placeholder-user.jpg" />
-            <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+            <AvatarImage src={user.image || "/placeholder-user.jpg"} />
+            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
              <p className="text-sm font-medium leading-none">
-              {user.role}
+              {user.name}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
@@ -145,8 +150,8 @@ const UserMenu = ({ onLogout, user, getInitials, isMobile }: UserMenuProps) => (
       ) : (
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src="/placeholder-user.jpg" />
-            <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+            <AvatarImage src={user.image || "/placeholder-user.jpg"} />
+            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
           </Avatar>
         </Button>
       )}
@@ -157,7 +162,7 @@ const UserMenu = ({ onLogout, user, getInitials, isMobile }: UserMenuProps) => (
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">
-                {user.role}
+                {user.name}
               </p>
               <p className="text-xs leading-none text-muted-foreground">
                 {user.email}

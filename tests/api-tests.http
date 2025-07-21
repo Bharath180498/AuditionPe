@@ -1,0 +1,195 @@
+### AuditionPe API Tests
+### Install REST Client extension in VS Code to use this file
+
+@baseUrl = http://localhost:3001
+@contentType = application/json
+
+### Variables (update these after getting real values)
+@sessionToken = your-session-token-here
+@castingId = your-casting-id-here
+@roleId = your-role-id-here
+
+###
+### 1. AUTHENTICATION TESTS
+###
+
+### Sign up as Actor
+POST {{baseUrl}}/api/auth/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "actor@test.com",
+  "password": "password123",
+  "name": "Test Actor",
+  "role": "ACTOR"
+}
+
+###
+
+### Sign up as Producer
+POST {{baseUrl}}/api/auth/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "producer@test.com",
+  "password": "password123",
+  "name": "Test Producer",
+  "role": "PRODUCER"
+}
+
+###
+
+### NextAuth Sign In (use browser)
+GET {{baseUrl}}/api/auth/signin
+
+###
+### 2. AUDITIONS/CASTING TESTS
+###
+
+### Get All Auditions (Public)
+GET {{baseUrl}}/api/auditions
+
+###
+
+### Get Single Audition by ID
+GET {{baseUrl}}/api/auditions/{{castingId}}
+
+###
+
+### Create Casting Call (Producer Only)
+POST {{baseUrl}}/api/casting
+Content-Type: {{contentType}}
+Cookie: next-auth.session-token={{sessionToken}}
+
+{
+  "title": "New Movie Casting",
+  "description": "Looking for talented actors for an upcoming film",
+  "location": "Mumbai, India",
+  "category": "FILM",
+  "roles": [
+    {
+      "name": "Lead Actor",
+      "description": "Main protagonist role",
+      "requirements": "5+ years of acting experience, age 25-35"
+    },
+    {
+      "name": "Supporting Actor",
+      "description": "Best friend character",
+      "requirements": "Comedy background preferred"
+    }
+  ]
+}
+
+###
+
+### Get All Casting Calls (Producer Only)
+GET {{baseUrl}}/api/casting
+Cookie: next-auth.session-token={{sessionToken}}
+
+###
+
+### Get Applicants for Casting (Producer Only)
+GET {{baseUrl}}/api/casting/{{castingId}}/applicants
+Cookie: next-auth.session-token={{sessionToken}}
+
+###
+### 3. APPLICATION TESTS
+###
+
+### Submit Application (Actor Only)
+POST {{baseUrl}}/api/apply
+Content-Type: {{contentType}}
+Cookie: next-auth.session-token={{sessionToken}}
+
+{
+  "roleId": "{{roleId}}",
+  "bio": "I am a passionate actor with 3 years of experience in theater and film. I have appeared in several short films and stage productions.",
+  "resumeUrl": "https://example.com/resume.pdf",
+  "headshot1Url": "https://example.com/headshot1.jpg",
+  "headshot2Url": "https://example.com/headshot2.jpg",
+  "videoUrl1": "https://example.com/demo-reel.mp4",
+  "videoUrl2": "https://example.com/monologue.mp4"
+}
+
+###
+
+### Get Actor's Applications
+GET {{baseUrl}}/api/actor/profile
+Cookie: next-auth.session-token={{sessionToken}}
+
+###
+### 4. UPLOADTHING TESTS
+###
+
+### UploadThing Endpoint
+POST {{baseUrl}}/api/uploadthing
+Content-Type: {{contentType}}
+
+###
+### 5. ERROR TESTING
+###
+
+### Test Protected Route Without Auth (Should return 401)
+GET {{baseUrl}}/api/actor/profile
+
+###
+
+### Test Wrong Role Access (Producer accessing Actor route)
+GET {{baseUrl}}/api/actor/profile
+Cookie: next-auth.session-token={{sessionToken}}
+
+###
+
+### Test Invalid Data (Missing required fields)
+POST {{baseUrl}}/api/auth/signup
+Content-Type: {{contentType}}
+
+{
+  "email": "invalid",
+  "password": "123"
+}
+
+###
+
+### Test Invalid Casting Creation (Missing fields)
+POST {{baseUrl}}/api/casting
+Content-Type: {{contentType}}
+Cookie: next-auth.session-token={{sessionToken}}
+
+{
+  "title": "Test"
+}
+
+###
+### 6. HEALTH CHECKS
+###
+
+### Homepage (Should load)
+GET {{baseUrl}}/
+
+###
+
+### 404 Test
+GET {{baseUrl}}/non-existent-endpoint
+
+###
+
+###
+### HOW TO USE THIS FILE:
+###
+### 1. Install REST Client extension in VS Code
+### 2. Make sure your dev server is running (npm run dev)
+### 3. Update the variables at the top after signing in:
+###    - Get sessionToken from browser cookies
+###    - Get castingId from creating a casting call
+###    - Get roleId from the casting call response
+### 4. Click "Send Request" above each request
+###
+
+###
+### TO GET SESSION TOKEN:
+### 1. Sign in through the frontend at http://localhost:3000/login
+### 2. Open browser DevTools → Application → Cookies
+### 3. Find "next-auth.session-token" and copy its value
+### 4. Replace {{sessionToken}} above with the actual value
+### 

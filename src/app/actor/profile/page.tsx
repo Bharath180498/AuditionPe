@@ -1,16 +1,27 @@
 "use client";
 
-import { useSessionStore } from "@/store/session";
+import { useSession } from "next-auth/react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { applications } from "@/data/applications";
 import { ApplicationCard } from "@/components/application-card";
+import useSWR from "swr";
+import { Application, Role, CastingCall } from "@prisma/client";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+interface ApplicationWithDetails extends Application {
+  role: Role & {
+    castingCall: CastingCall;
+  };
+}
 
 export default function ActorProfilePage() {
-    const { user } = useSessionStore();
+    const { data: session } = useSession();
+    const user = session?.user;
+    const { data: userApplications, error } = useSWR<ApplicationWithDetails[]>("/api/actor/profile", fetcher);
 
-    const getInitials = (email: string) => {
-        return email ? email.charAt(0).toUpperCase() : "";
+    const getInitials = (name?: string | null) => {
+        return name ? name.charAt(0).toUpperCase() : "";
     };
     
     if (!user) {
@@ -21,7 +32,8 @@ export default function ActorProfilePage() {
         )
     }
 
-    const userApplications = applications.filter(app => app.actorId === user.id);
+    if (error) return <div>Failed to load</div>;
+    if (!userApplications) return <div>Loading...</div>;
 
     return (
         <div className="container mx-auto p-4 sm:p-6 md:p-8">
@@ -29,11 +41,11 @@ export default function ActorProfilePage() {
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                         <Avatar className="h-16 w-16">
-                            <AvatarImage src="/placeholder-user.jpg" />
-                            <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                            <AvatarImage src={user.image || "/placeholder-user.jpg"} />
+                            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                         </Avatar>
                         <div>
-                            <CardTitle className="text-2xl">{user.email.split('@')[0]}</CardTitle>
+                            <CardTitle className="text-2xl">{user.name}</CardTitle>
                             <p className="text-sm text-gray-500">{user.email}</p>
                             <p className="text-sm text-gray-500">Mumbai, India</p>
                         </div>

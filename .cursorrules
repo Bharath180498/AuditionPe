@@ -1,0 +1,116 @@
+.cursor-rules -- Backstage India Fullstack App (Production-Grade)
+ Tech Stack Rules
+- Use Next.js with the App Router structure (pages inside /app)
+- Use TypeScript everywhere
+- Tailwind CSS for all styling
+- Use ShadCN UI components (e.g., Button, Card, Dialog)
+- Use NextAuth for authentication and session management
+- Use Prisma as ORM (PostgreSQL)
+- Use NextAuth for authentication
+- Use file uploads via UploadThing
+- Use REST API handlers inside /app/api/** (not RPC or tRPC)
+ Authentication Rules
+- Use NextAuth with email/password (credentials provider)
+- Auth session is required to access:
+ - /auditions/** (for actors)
+ - /producer/** (for producers)
+ - /actor/profile (for actor dashboard)
+- User must pick a `role` on sign-up: "actor" or "producer"
+- Store user roles in the database (`users` table `role` column)
+ Folder Structure Rules
+Create routes:
+- `/` Landing page
+- `/login` Auth login (redirect if already logged in)
+- `/signup` Sign-up form (role + details)
+- `/auditions` Actor dashboard (audition listings)
+- `/auditions/[id]` Audition details + apply form
+- `/producer/dashboard` Producer dashboard
+- `/producer/new` Create casting call
+- `/producer/[castingId]` View applicants per role
+- `/actor/profile` Actor profile page (list applications)
+Other folders:
+- `/components` Reusable UI components
+- `/lib` Upload, session, validation, utility logic
+- `/db` Prisma schema, client
+- `/app/api` All backend routes
+- `/types` Shared types
+ Users & Roles
+Users table fields:
+- id, email, password_hash, name, role, createdAt
+Two roles only:
+- actor can browse, apply, and view profile page
+- producer can create, view applicants
+NextAuth session management:
+- user, isLoggedIn, role managed via NextAuth session
+ Actor Flow Rules
+Actors must be authenticated to:
+- View /auditions list (filtered from DB)
+- View audition details page
+- Submit applications via form:
+ - Resume (PDF)
+ - 2 headshots (images)
+ - 2 video links (URL or file)
+ - Personal bio
+- View their own application history at `/actor/profile`
+ - Includes project, role, status, resume, media, submission date
+- File uploads should use UploadThing
+- Store applications in `applications` table
+ Producer Flow Rules
+Producers must be authenticated to:
+- Access /producer/dashboard to see casting calls
+- Create casting calls at /producer/new
+ - Fields: project name, description, location, category
+ - Add multiple roles per project (stored in `roles` table)
+- View /producer/[castingId] to see applicants
+ - Each applicant includes resume, headshots, video, contact info
+ Database Rules
+Use the models as per the Prisma schema outlined above.
+API Route Rules
+Create these backend endpoints:
+- POST /api/auth/signup Register user (hash password, save role)
+- POST /api/auth/login Login and return session
+- GET /api/auditions Get all auditions
+- GET /api/auditions/:id Get single audition with roles
+- POST /api/apply Submit application
+- POST /api/casting Create new casting call with roles
+- GET /api/casting/:id/applicants Get all applicants for one casting
+- GET /api/actor/profile Get actor's applications
+All API handlers must:
+- Validate body with Zod
+- Protect endpoints using session check
+- Use Prisma to read/write data
+ Component Guidelines
+Use:
+- components/AuditionCard.tsx For audition list
+- components/RoleForm.tsx For casting role inputs
+- components/ApplicationForm.tsx For actors to apply
+- components/ApplicantCard.tsx For producer to view submissions
+- components/NavBar.tsx Role-based dynamic nav
+- components/FileUploader.tsx Resume + image upload
+- components/ApplicationCard.tsx Actor profile listing card
+- components/StatusBadge.tsx Status badge component
+Use ShadCN UI + Tailwind for all components.
+ State & UX Rules
+- Use NextAuth for session management (user, role, isLoggedIn)
+- Login state must persist via NextAuth session cookies
+- Protect pages using middleware and session checks
+- All actions must show toast confirmation (e.g., "Submitted!", "Created!")
+ Completion Milestones
+[✅] Auth working (login/signup with role)
+[✅] Actor: browse & apply
+[✅] Actor: view applications on profile page
+[✅] Producer: post & manage roles
+[✅] Full DB integration via Prisma
+[✅] All file uploads working via UploadThing
+[✅] Session persistence via NextAuth
+[✅] Fully responsive UI
+[✅] All API endpoints implemented and working
+[✅] Route protection via middleware
+[✅] Production-ready build system
+
+ Do Not Use
+- tRPC or GraphQL
+- dummy JSON data
+- hardcoded roles or states
+- any non-TypeScript file
+- Zustand (replaced with NextAuth session management)

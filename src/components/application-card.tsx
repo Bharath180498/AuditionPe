@@ -9,30 +9,29 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Application } from "@/data/applications";
-import { auditions } from "@/data/auditions";
+import { Application, CastingCall, Role } from "@prisma/client";
 import Image from "next/image";
 
 type ApplicationCardProps = {
-  application: Application;
+  application: Application & {
+    role: Role & {
+      castingCall: CastingCall;
+    };
+  };
 };
 
 export function ApplicationCard({ application }: ApplicationCardProps) {
-  const audition = auditions.find((a) => a.id === application.auditionId);
-  const role = audition?.roles.find((r) => r.id === application.roleId);
-
-  if (!audition || !role) {
-    return null;
-  }
+  const { role } = application;
+  const { castingCall } = role;
 
   return (
     <Card>
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle>{audition.title}</CardTitle>
+            <CardTitle>{castingCall.title}</CardTitle>
             <CardDescription>
-              {role.name} at {audition.location}
+              {role.name} at {castingCall.location}
             </CardDescription>
           </div>
           <Badge variant={application.status.toLowerCase() as "submitted" | "shortlisted" | "rejected"}>{application.status}</Badge>
@@ -50,8 +49,8 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
                   <Image
                     src={src}
                     alt={`Headshot ${i + 1}`}
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    style={{ objectFit: 'cover' }}
                     className="rounded-md"
                   />
                 </div>

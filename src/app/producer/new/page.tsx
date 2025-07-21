@@ -21,7 +21,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { auditions } from "@/data/auditions";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 
@@ -41,8 +40,13 @@ export default function NewCastingPage() {
   const [roles, setRoles] = useState<RoleForm[]>([
     { name: "", gender: "Any", ageRange: [18, 99], description: "" },
   ]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleRoleChange = <K extends keyof RoleForm>(index: number, field: K, value: RoleForm[K]) => {
+  const handleRoleChange = <K extends keyof RoleForm>(
+    index: number,
+    field: K,
+    value: RoleForm[K]
+  ) => {
     const newRoles = [...roles];
     newRoles[index][field] = value;
     setRoles(newRoles);
@@ -54,31 +58,47 @@ export default function NewCastingPage() {
       { name: "", gender: "Any", ageRange: [18, 99], description: "" },
     ]);
   };
-  
+
   const removeRole = (index: number) => {
     const newRoles = roles.filter((_, i) => i !== index);
     setRoles(newRoles);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newAudition = {
-      id: (auditions.length + 1).toString(),
-      title,
-      description,
-      category,
-      location,
-      roles: roles.map((r, i) => ({ ...r, id: `${auditions.length + 1}-${i + 1}` })),
-    };
+    setIsLoading(true);
 
-    auditions.push(newAudition);
-    toast.success("Casting call created successfully!");
-    router.push("/producer/dashboard");
+    try {
+      const response = await fetch("/api/casting", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          category,
+          location,
+          roles,
+        }),
+      });
+
+      if (!response.ok) {
+        toast.error("Failed to create casting call.");
+      } else {
+        toast.success("Casting call created successfully!");
+        router.push("/producer/dashboard");
+      }
+    } catch {
+      toast.error("An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="container mx-auto p-4 sm:p-6 md:p-8">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6">Create New Casting Call</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6">
+        Create New Casting Call
+      </h1>
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
@@ -143,7 +163,12 @@ export default function NewCastingPage() {
           <CardContent className="space-y-6">
             {roles.map((role, index) => (
               <div key={index} className="border p-4 rounded-lg relative">
-                <Button variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => removeRole(index)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2"
+                  onClick={() => removeRole(index)}
+                >
                   <X className="h-4 w-4" />
                 </Button>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -160,7 +185,13 @@ export default function NewCastingPage() {
                   <div className="space-y-2">
                     <Label>Gender</Label>
                     <Select
-                      onValueChange={(v) => handleRoleChange(index, "gender", v as "Male" | "Female" | "Any")}
+                      onValueChange={(v) =>
+                        handleRoleChange(
+                          index,
+                          "gender",
+                          v as "Male" | "Female" | "Any"
+                        )
+                      }
                       defaultValue={role.gender}
                     >
                       <SelectTrigger>
@@ -223,7 +254,9 @@ export default function NewCastingPage() {
         </Card>
 
         <div className="mt-8 flex justify-end">
-          <Button type="submit">Create Casting Call</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Creating..." : "Create Casting Call"}
+          </Button>
         </div>
       </form>
     </div>

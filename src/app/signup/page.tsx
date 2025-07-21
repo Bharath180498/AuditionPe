@@ -20,44 +20,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSessionStore } from "@/store/session";
-import { users } from "@/data/users";
+import { toast } from "sonner";
+import { RoleType } from "@prisma/client";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { setUser } = useSessionStore();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"Actor" | "Producer">("Actor");
+  const [role, setRole] = useState<RoleType>("ACTOR");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
+    setIsLoading(true);
+    setError("");
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
+      setIsLoading(false);
       return;
     }
 
-    const existingUser = users.find((u) => u.email === email);
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, role }),
+      });
 
-    if (existingUser) {
-      setError("User with this email already exists");
-      return;
-    }
-
-    const newUser = {
-      id: (users.length + 1).toString(),
-      email,
-      role,
-    };
-
-    users.push(newUser);
-    setUser(newUser);
-
-    if (newUser.role === "Producer") {
-      router.push("/producer/dashboard");
-    } else {
-      router.push("/auditions");
+      if (!response.ok) {
+        const errorData = await response.text();
+        setError(errorData);
+        toast.error("Signup failed");
+      } else {
+        toast.success("Signup successful!");
+        router.push("/login");
+      }
+    } catch {
+      setError("An unexpected error occurred.");
+      toast.error("An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -71,6 +76,17 @@ export default function SignupPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="John Doe"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -104,21 +120,21 @@ export default function SignupPage() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="role">Role</Label>
-            <Select onValueChange={(value) => setRole(value as "Actor" | "Producer")} defaultValue={role}>
+            <Select onValueChange={(value) => setRole(value as RoleType)} defaultValue={role}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Actor">Actor</SelectItem>
-                <SelectItem value="Producer">Producer</SelectItem>
+                <SelectItem value="ACTOR">Actor</SelectItem>
+                <SelectItem value="PRODUCER">Producer</SelectItem>
               </SelectContent>
             </Select>
           </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
         </CardContent>
         <CardFooter>
-          <Button className="w-full" onClick={handleSignup}>
-            Sign up
+          <Button className="w-full" onClick={handleSignup} disabled={isLoading}>
+            {isLoading ? "Signing up..." : "Sign up"}
           </Button>
         </CardFooter>
       </Card>

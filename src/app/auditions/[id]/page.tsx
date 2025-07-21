@@ -15,31 +15,38 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { auditions } from "@/data/auditions";
-import { applications } from "@/data/applications";
-import { useSessionStore } from "@/store/session";
 import { toast } from "sonner";
-import { Role } from "@/data/auditions";
+import { useSession } from "next-auth/react";
+import useSWR from "swr";
+import { CastingCall, Role } from "@prisma/client";
+import { OurFileRouter } from "@/app/api/uploadthing/core";
+import { UploadButton } from "@uploadthing/react";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+interface AuditionWithRoles extends CastingCall {
+  roles: Role[];
+}
 
 export default function AuditionDetailPage() {
   const params = useParams();
   const { id } = params;
-  const audition = auditions.find((a) => a.id === id);
-  const { user } = useSessionStore();
+  const { data: audition, error } = useSWR<AuditionWithRoles>(`/api/auditions/${id}`, fetcher);
+  const { data: session } = useSession();
+  const user = session?.user;
 
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     bio: "",
-    resume: null as File | null,
-    headshots: [] as File[],
-    videos: [] as File[],
+    resume: "",
+    headshots: [] as string[],
+    videos: [] as string[],
   });
 
-  if (!audition) {
-    return <div>Audition not found</div>;
-  }
+  if (error) return <div>Failed to load</div>;
+  if (!audition) return <div>Audition not found</div>;
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -48,20 +55,9 @@ export default function AuditionDetailPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, files } = e.target;
-    if (files) {
-      if (name === "headshots" || name === "videos") {
-        setFormData((prev) => ({ ...prev, [name]: Array.from(files) }));
-      } else {
-        setFormData((prev) => ({ ...prev, [name]: files[0] }));
-      }
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || user.role !== "Actor") {
+    if (!user || user.role !== "ACTOR") {
       toast.error("You must be logged in as an Actor to apply.");
       return;
     }
@@ -70,20 +66,24 @@ export default function AuditionDetailPage() {
       return;
     }
 
-    const newApplication = {
-      id: (applications.length + 1).toString(),
-      auditionId: audition.id,
-      roleId: selectedRole.id,
-      actorId: user.id,
-      ...formData,
-      resume: formData.resume?.name || "",
-      headshots: formData.headshots.map(f => f.name),
-      videos: formData.videos.map(f => f.name),
-      status: "Submitted" as const,
-    };
+    try {
+        const response = await fetch("/api/apply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ...formData,
+                roleId: selectedRole.id,
+            }),
+        });
 
-    applications.push(newApplication);
-    toast.success("Application submitted successfully!");
+        if (!response.ok) {
+            toast.error("Failed to submit application.");
+        } else {
+            toast.success("Application submitted successfully!");
+        }
+    } catch {
+        toast.error("An unexpected error occurred.");
+    }
   };
 
   return (
@@ -103,12 +103,12 @@ export default function AuditionDetailPage() {
             <div key={role.id} className="mb-4">
               <h3 className="text-xl font-semibold">{role.name}</h3>
               <p className="text-sm text-gray-500">
-                {role.gender}, {role.ageRange[0]}-{role.ageRange[1]} years
+                {role.gender}, {role.ageRange} years
               </p>
               <p>{role.description}</p>
             </div>
           ))}
-          {user?.role === "Actor" && (
+          {user?.role === "ACTOR" && (
             <>
               <Separator className="my-6" />
               <h2 className="text-2xl font-semibold mb-4">Apply for a Role</h2>
@@ -161,37 +161,47 @@ export default function AuditionDetailPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="resume">Resume (PDF)</Label>
-                    <Input
-                      id="resume"
-                      name="resume"
-                      type="file"
-                      accept=".pdf"
-                      required
-                      onChange={handleFileChange}
+                    <UploadButton<OurFileRouter, "resumeUploader">
+                      endpoint="resumeUploader"
+                      onClientUploadComplete={(res) => {
+                        if (res) {
+                          setFormData(prev => ({ ...prev, resume: res[0].url }));
+                          toast.success("Resume uploaded successfully!");
+                        }
+                      }}
+                      onUploadError={(error: Error) => {
+                        toast.error(`ERROR! ${error.message}`);
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="headshots">Headshots (2 images)</Label>
-                    <Input
-                      id="headshots"
-                      name="headshots"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      required
-                      onChange={handleFileChange}
+                    <UploadButton<OurFileRouter, "headshotUploader">
+                      endpoint="headshotUploader"
+                      onClientUploadComplete={(res) => {
+                        if (res) {
+                          setFormData(prev => ({ ...prev, headshots: res.map(r => r.url) }));
+                          toast.success("Headshots uploaded successfully!");
+                        }
+                      }}
+                      onUploadError={(error: Error) => {
+                        toast.error(`ERROR! ${error.message}`);
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="videos">Videos (2 uploads)</Label>
-                    <Input
-                      id="videos"
-                      name="videos"
-                      type="file"
-                      accept="video/*"
-                      multiple
-                      required
-                      onChange={handleFileChange}
+                    <UploadButton<OurFileRouter, "videoUploader">
+                      endpoint="videoUploader"
+                      onClientUploadComplete={(res) => {
+                        if (res) {
+                          setFormData(prev => ({ ...prev, videos: res.map(r => r.url) }));
+                          toast.success("Videos uploaded successfully!");
+                        }
+                      }}
+                      onUploadError={(error: Error) => {
+                        toast.error(`ERROR! ${error.message}`);
+                      }}
                     />
                   </div>
                 </div>

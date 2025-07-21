@@ -18,17 +18,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { auditions } from "@/data/auditions";
-import { applications } from "@/data/applications";
+import useSWR from "swr";
+import { CastingCall } from "@prisma/client";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+interface CastingCallWithApplicantCount extends CastingCall {
+  applicantCount: number;
+}
 
 export default function ProducerDashboard() {
-  // In a real app, you'd filter auditions by the logged-in producer.
-  // For now, we'll show all auditions.
-  const producerAuditions = auditions;
+  const { data: producerAuditions, error } = useSWR<CastingCallWithApplicantCount[]>("/api/casting", fetcher);
 
-  const getApplicantCount = (auditionId: string) => {
-    return applications.filter((app) => app.auditionId === auditionId).length;
-  };
+  if (error) return <div>Failed to load</div>;
+  if (!producerAuditions) return <div>Loading...</div>;
 
   return (
     <div className="container mx-auto p-4">
@@ -66,7 +69,7 @@ export default function ProducerDashboard() {
                     </TableCell>
                     <TableCell>{audition.category}</TableCell>
                     <TableCell>{audition.location}</TableCell>
-                    <TableCell>{getApplicantCount(audition.id)}</TableCell>
+                    <TableCell>{audition.applicantCount}</TableCell>
                     <TableCell>
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/producer/${audition.id}`}>
@@ -94,7 +97,7 @@ export default function ProducerDashboard() {
                     <div className="flex justify-between items-center">
                       <p className="text-sm text-gray-500">Applicants</p>
                       <p className="font-medium">
-                        {getApplicantCount(audition.id)}
+                        {audition.applicantCount}
                       </p>
                     </div>
                   </CardContent>

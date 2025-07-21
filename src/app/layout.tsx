@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
 import { Footer } from "@/components/footer";
+import NextAuthProvider from "./provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,10 +23,12 @@ export default function RootLayout({
       <body
         className={`${inter.className} flex flex-col h-full overflow-x-hidden`}
       >
-        <Header />
-        <main className="flex-grow">{children}</main>
-        <Footer />
-        <Toaster />
+        <NextAuthProvider>
+          <Header />
+          <main className="flex-grow">{children}</main>
+          <Footer />
+          <Toaster />
+        </NextAuthProvider>
       </body>
     </html>
   );

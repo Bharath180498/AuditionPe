@@ -13,38 +13,39 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useSessionStore } from "@/store/session";
-import { users } from "@/data/users";
+import { toast } from "sonner";
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUser } = useSessionStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"Actor" | "Producer">("Actor");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
-    const user = users.find(
-      (u) => u.email === email && u.role === role
-    );
+  const handleLogin = async () => {
+    setIsLoading(true);
+    setError("");
 
-    if (user) {
-      setUser(user);
-      if (user.role === "Producer") {
-        router.push("/producer/dashboard");
+    try {
+      const result = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
+
+      if (result?.error) {
+        setError("Invalid credentials");
+        toast.error("Login failed");
       } else {
+        toast.success("Login successful!");
         router.push("/auditions");
       }
-    } else {
-      setError("Invalid credentials or role");
+    } catch {
+        setError("An unexpected error occurred.");
+        toast.error("An unexpected error occurred.");
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -79,23 +80,11 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="role">Role</Label>
-            <Select onValueChange={(value) => setRole(value as "Actor" | "Producer")} defaultValue={role}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Actor">Actor</SelectItem>
-                <SelectItem value="Producer">Producer</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
         </CardContent>
         <CardFooter>
-          <Button className="w-full" onClick={handleLogin}>
-            Sign in
+          <Button className="w-full" onClick={handleLogin} disabled={isLoading}>
+            {isLoading ? "Signing in..." : "Sign in"}
           </Button>
         </CardFooter>
       </Card>

@@ -18,31 +18,31 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { auditions } from "@/data/auditions";
-import { applications } from "@/data/applications";
 import { Button } from "@/components/ui/button";
+import useSWR from "swr";
+import { Application, Role, User } from "@prisma/client";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+interface ApplicationWithDetails extends Application {
+  actor: User;
+  role: Role;
+}
 
 export default function ViewApplicantsPage() {
   const params = useParams();
   const { castingId } = params;
-
-  const audition = auditions.find((a) => a.id === castingId);
-  const auditionApplications = applications.filter(
-    (app) => app.auditionId === castingId
+  const { data: auditionApplications, error } = useSWR<ApplicationWithDetails[]>(
+    `/api/casting/${castingId}/applicants`,
+    fetcher
   );
 
-  if (!audition) {
-    return <div>Casting call not found</div>;
-  }
-
-  const getRoleName = (roleId: string) => {
-    return audition.roles.find((r) => r.id === roleId)?.name || "N/A";
-  };
+  if (error) return <div>Failed to load</div>;
+  if (!auditionApplications) return <div>Loading...</div>;
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-2">{audition.title}</h1>
-      <p className="text-lg text-gray-500 mb-6">Applicants</p>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6">Applicants</h1>
       <Card>
         <CardHeader>
           <CardTitle>Received Applications</CardTitle>
@@ -66,9 +66,9 @@ export default function ViewApplicantsPage() {
               <TableBody>
                 {auditionApplications.map((app) => (
                   <TableRow key={app.id}>
-                    <TableCell className="font-medium">{app.name}</TableCell>
-                    <TableCell>{app.email}</TableCell>
-                    <TableCell>{getRoleName(app.roleId)}</TableCell>
+                    <TableCell className="font-medium">{app.actor.name}</TableCell>
+                    <TableCell>{app.actor.email}</TableCell>
+                    <TableCell>{app.role.name}</TableCell>
                     <TableCell>
                       <Badge>{app.status}</Badge>
                     </TableCell>
@@ -88,13 +88,13 @@ export default function ViewApplicantsPage() {
               {auditionApplications.map((app) => (
                 <Card key={app.id}>
                   <CardHeader>
-                    <CardTitle>{app.name}</CardTitle>
-                    <CardDescription>{app.email}</CardDescription>
+                    <CardTitle>{app.actor.name}</CardTitle>
+                    <CardDescription>{app.actor.email}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Role</span>
-                      <span>{getRoleName(app.roleId)}</span>
+                      <span>{app.role.name}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Status</span>
